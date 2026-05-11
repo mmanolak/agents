@@ -1,0 +1,549 @@
+#######################################################################################################################
+#######################################################################################################################
+###                                          Server Setup // Fedora Details                                         ###
+#######################################################################################################################
+#######################################################################################################################
+
+
+#######################################################################################################################
+###                                                Pre-Setup Details                                                ###
+#######################################################################################################################
+
+
+################################ Reference Materials ###################################
+### Donato Capitella - GLM 4.5-Air-106B and Qwen3-235B on AMD "Strix Halo" AI Ryzen MAX+ 395
+https://www.youtube.com/watch?v=wCBLMXgk3No
+
+### kyuz0 - AMD Strix Halo Toolboxes
+https://github.com/kyuz0/amd-strix-halo-toolboxes
+
+### Level1Linux - Linux on the New Framework Desktop PC!
+https://www.youtube.com/watch?v=ziZDzrDI7AM
+
+### Full DeepSeek Q1 with the “IK” version of llama.cpp on AM5 – No Distills; Just a Quant
+https://forum.level1techs.com/t/full-deepseek-q1-with-the-ik-version-of-llama-cpp-on-am5-no-distills-just-a-quant/233530
+
+### TheRock - ROCm Installation Methods
+https://github.com/ROCm/TheRock
+
+
+#################################### Server Options ####################################
+### Fedora Server 43 [Target OS]
+https://www.fedoraproject.org/server/download/
+
+### Download for Mounting
+https://rufus.ie/en/
+
+##################################### Bios Changes #####################################
+### RAM // Dedicated Video Memory
+-> Set to 512M (Lowest possible value is critical for Unified Memory)
+
+
+#######################################################################################################################
+###                                               Installation Details                                              ###
+#######################################################################################################################
+
+
+################################## 1. Initial Setup ####################################
+
+### A. OS Installation (Custom Partitioning)
+# To protect your AI models from future OS reinstallations, separate your root and home drives:
+# 1. Boot the Fedora 43 Server installer.
+# 2. Go to "Installation Destination" -> Select your 2TB drive.
+# 3. Under Storage Configuration, select "Custom" -> Click "Done".
+# 4. Click the blue link to "create them automatically" (this builds your boot/EFI).
+# 5. Select the `/` (root) partition. Change "Desired Capacity" to 100 GiB.
+#    (100GB gives plenty of room for Docker images and the AMD toolboxes).
+# 6. Select the `/home` partition. Leave "Desired Capacity" blank to use all remaining space (~1.8 TiB).
+# 7. Click "Done" and accept changes to build the isolated layout.
+
+### B. Post-Install Updates
+# Update System
+sudo dnf update -y
+
+### C. Verifying your setup
+uname -a
+
+### Verify Kernel Version (Must be 6.18.4 or newer)
+uname -r
+
+### Verify Firmware (Do NOT use 20251125, It breaks ROCm support on Strix Halo)
+rpm -qa | grep linux-firmware
+
+################################## 2. Kernel Config ####################################
+### Install nano
+sudo dnf install nano vim bash-completion -y
+
+### Install the ROCm utilities
+sudo dnf install rocminfo rocm-smi -y
+
+### Edit Grub
+sudo nano /etc/default/grub
+
+### Append to GRUB_CMDLINE_LINUX line:
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL_OUTPUT="console"
+GRUB_CMDLINE_LINUX="rd.lvm.lv=fedora_<hostname>/root rhgb quiet iommu=pt amdgpu.gttsize=126976 ttm.pages_limit=32505856"
+GRUB_DISABLE_RECOVERY="true"
+GRUB_ENABLE_BLSCFG=true
+
+### Apply Grub Changes
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+
+sudo reboot
+
+### Grub edit
+cat /etc/default/grub
+
+## Output should be something like below
+# GRUB_CMDLINE_LINUX="r.luks.uuid=luks2ca3232b-d7f6-4409-83ed-a73544f1b27a rhgb quite amd_iommu=off amdgpu.gttsize=131072 ttm.pages_limit=335544321"
+
+
+################################## 3. Toolbox Setup ####################################
+### Install Toolbox (If not present on Server install)
+sudo dnf install toolbox -y
+
+### Create Toolbox (ROCm 7.2 - Recommended for Performance)
+toolbox create llama-rocm-7.2 \
+  --image docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2 \
+  -- --device /dev/dri --device /dev/kfd \
+  --group-add video --group-add render --group-add sudo --security-opt seccomp=unconfined
+
+### Enter Toolbox
+toolbox enter llama-rocm-7.2
+
+################################## 4. Verification #####################################
+### Check GPU Access inside Toolbox
+llama-cli --list-devices
+
+
+#######################################################################################################################
+###                                             Additional Installation                                             ###
+#######################################################################################################################
+
+### 0. NVIDIA Drivers (For 3060 Ti eGPU)
+# Enable RPM Fusion repositories
+sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm -y
+
+# Install Drivers
+sudo dnf install akmod-nvidia xorg-x11-drv-nvidia-cuda -y
+
+# Verify Hardware Detection (After Reboot)
+lspci | grep -i nvidia
+
+# Wait 2 Minutes
+sudo reboot
+
+nvidia-smi
+
+### OpenSSH
+# Install and Enable
+sudo dnf install openssh-server -y
+
+sudo systemctl enable --now sshd
+
+# Check Status
+sudo systemctl status sshd
+
+### Docker & NVIDIA Container Toolkit
+# Add Docker Repo
+sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf install docker-ce docker-ce-cli containerd.io -y
+
+# Install Docker
+sudo systemctl enable --now docker
+sudo usermod -aG docker <username>
+
+# Install NVIDIA Container Toolkit (Allows Docker to use 3060 Ti)
+sudo dnf config-manager addrepo --from-repofile=https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
+sudo dnf install nvidia-container-toolkit -y
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+
+### Ollama (Service Setup)
+# Install Script
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Configure Storage to /home (Override default /usr/share)
+sudo mkdir -p /home/<username>/ai_models
+
+# 1. Give the ollama user ownership of the model folder
+sudo chown -R ollama:ollama /home/<username>/ai_models
+
+# 2. Set permissions so the 'ollama' group can write and the user can 'enter' the path
+sudo chmod 755 /home/<username>
+sudo chmod -R 775 /home/<username>/ai_models
+
+# 3. Update the Service to point to the new folder
+sudo systemctl edit ollama.service
+
+# In the editor, add the following lines at the top:
+# [Service]
+# Environment="OLLAMA_MODELS=/home/<username>/ai_models"
+
+# 4. Reload and Restart the service
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+
+### Llama.cpp (Native Vulkan Build for 3060 Ti & AMD)
+# Install Vulkan Build Dependencies
+sudo dnf install git make gcc-c++ cmake vulkan-headers vulkan-loader-devel glslc -y
+
+# Clone Repository
+cd /home/<username>
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+
+# Configure and Build with Vulkan Support
+cmake -B build -DGGML_VULKAN=ON
+cmake --build build --config Release -j $(nproc)
+
+# Usage Note:
+# Use ./build/bin/llama-cli (in this folder) to run the natively compiled version.
+# Use the 'toolbox' commands from the previous section to use the AMD Strix Halo GPU exclusively.
+
+### TailScale
+# Add Repo and Install
+sudo dnf config-manager addrepo --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+sudo dnf install tailscale -y
+
+# Start Service
+sudo systemctl enable --now tailscaled
+sudo tailscale up
+
+
+#######################################################################################################################
+###                                                Storage Management                                               ###
+#######################################################################################################################
+
+### Central Model Directory (Uses your 1.9TB unified Root Partition)
+# Directory was created in the Ollama step. Verify it exists:
+mkdir -p ~/home/<username>/ai_models
+chmod 775 ~/home/<username>/ai_models
+
+# If you want the AMD Toolbox to see this folder easily:
+# The toolbox maps your home directory automatically.
+# Inside toolbox, models will be located at: /var/home/<username>/ai_models
+
+### (OPTIONAL) Mounting an External USB Drive for Models
+# Search for the USB Holding the Models
+lsblk -p
+
+# Manual Mount (Temporary)
+sudo mount /dev/sdb1 /home/<username>/ai_models
+sudo chown -R <username>:<username> /home/<username>/ai_models
+
+# Unmount the Drive
+sudo umount /dev/sdb1
+
+# Making the Mount Permanent (Shows up after each Reboot)
+lsblk -d -no UUID /dev/sdb1
+# Copy the UUID, then edit /etc/fstab and add:
+# UUID=your-uuid-here  /home/<username>/ai_models  ext4  defaults,nofail  0  2
+
+
+#######################################################################################################################
+###                                         Verifying Offloading & Unified Memory                                   ###
+#######################################################################################################################
+
+# While a model is running, open a second terminal and type:
+ollama ps
+
+# Look for the "Processor" column.
+# 100% GPU: It’s fully on your card (ROCm/CUDA/Vulkan).
+# 70% / 30% GPU/CPU: It’s splitting between VRAM and your 128GB Unified Memory.
+# This is perfect for models larger than your GPU's dedicated VRAM.
+
+## For NVIDIA (Vulkan/CUDA):
+nvidia-smi
+# or
+nvtop
+
+## For AMD (ROCm):
+rocm-smi
+#or
+nvtop
+
+######################### (Note: nvtop supports both and is highly recommended)
+
+# nvtop install
+sudo dnf install nvtop -y
+
+
+# For another AIO Monitoring software btop
+sudo dnf install btop -y
+
+# to run btop
+btop
+
+
+#######################################################################################################################
+###                                         Fine Tuning // Model Running Purposes                                   ###
+#######################################################################################################################
+
+# Kills All Previous instances of other Servers
+pkill llama-server
+
+# Path to llama.cpp for llama-server to run
+~/llama.cpp/build/bin/llama-server \
+	# Draft model for speculative decoding
+    -m ~/ai_models/[Model].gguf \
+	# Size of the prompt context (default: 0, 0 = loaded from model)
+    -c 16384 \
+	# Number of CPU threads to use during generation (default: -1)
+    -t 12 \
+	# Max number of layers to store in VRAM (auto, all, or exact number)
+    -ngl 999 \
+	# Number of server slots (default: -1, auto)
+	--parallel 1 \
+	# Set max cache size in MiB (default: 8192)
+    --cache-ram -1 \
+	# Set Flash Attention use (default: 'auto')
+    --flash-attn on \
+	# Memory-map model (default: enabled)
+    --no-mmap \
+	# IP address to listen (default: 127.0.0.1)
+    --host 0.0.0.0 \
+	# Port to listen (default: 8080)
+    --port 8080 \
+	# Set verbosity level to infinity
+    --verbose \
+	# Physical maximum batch size (default: 512)
+    --ubatch-size 512 \
+	# Logical maximum batch size (default: 2048)
+    --batch-size 2048 \
+	#  KV cache data type for K (f32, f16, bf16, q8_0, etc. Default: f16)
+    -ctk q8_0 \
+	# KV cache data type for V (f32, f16, bf16, q8_0, etc. Default: f16)
+    -ctv q8_0
+
+
+############## Clean version for copy/paste:
+
+pkill llama-server
+
+~/llama.cpp/build/bin/llama-server \
+    -m ~/ai_models/[Model].gguf \
+    -c 16384 \
+    -t 12 \
+    -ngl 999 \
+	--parallel 1 \
+    --cache-ram -1 \
+    --flash-attn on \
+    --no-mmap \
+    --host 0.0.0.0 \
+    --port 8080 \
+    --verbose \
+    --ubatch-size 512 \
+    --batch-size 2048 \
+    -ctk q8_0 \
+    -ctv q8_0
+
+
+
+#######################################################################################################################
+###                                            LLAMA.CPP PARAMETERS REFERENCE                                       ###
+#######################################################################################################################
+
+Argument                                                  Environment Variable                    Explanation
+----------------------------------------------------------------------------------------------------------------------------------
+
+### COMMON PARAMS
+-h, --help, --usage                                     (N/A)                                   Print usage and exit
+--version                                               (N/A)                                   Show version and build info
+--license                                               (N/A)                                   Show source code license and dependencies
+-cl, --cache-list                                       (N/A)                                   Show list of models in cache
+--completion-bash                                       (N/A)                                   Print source-able bash completion script
+--verbose-prompt                                        (N/A)                                   Print a verbose prompt before generation (default: false)
+-t, --threads N                                         (LLAMA_ARG_THREADS)                     Number of CPU threads to use during generation (default: -1)
+-tb, --threads-batch N                                  (N/A)                                   Number of threads to use during batch/prompt processing (default: same as --threads)
+-C, --cpu-mask M                                        (N/A)                                   CPU affinity mask: arbitrarily long hex. Complements cpu-range (default: "")
+-Cr, --cpu-range lo-hi                                  (N/A)                                   Range of CPUs for affinity. Complements --cpu-mask
+--cpu-strict <0|1>                                      (N/A)                                   Use strict CPU placement (default: 0)
+--prio N                                                (N/A)                                   Set process/thread priority: low(-1), normal(0), medium(1), high(2), realtime(3)
+--poll <0...100>                                        (N/A)                                   Use polling level to wait for work (0 - no polling, default: 50)
+-Cb, --cpu-mask-batch M                                 (N/A)                                   CPU affinity mask (batch): arbitrarily long hex
+-Crb, --cpu-range-batch lo-hi                           (N/A)                                   Ranges of CPUs for affinity (batch)
+--cpu-strict-batch <0|1>                                (N/A)                                   Use strict CPU placement (batch)
+--prio-batch N                                          (N/A)                                   Set process/thread priority (batch)
+--poll-batch <0|1>                                      (N/A)                                   Use polling to wait for work (batch)
+-c, --ctx-size N                                        (LLAMA_ARG_CTX_SIZE)                    Size of the prompt context (default: 0, 0 = loaded from model)
+-n, --predict, --n-predict N                            (LLAMA_ARG_N_PREDICT)                   Number of tokens to predict (default: -1, -1 = infinity)
+-b, --batch-size N                                      (LLAMA_ARG_BATCH)                       Logical maximum batch size (default: 2048)
+-ub, --ubatch-size N                                    (LLAMA_ARG_UBATCH)                      Physical maximum batch size (default: 512)
+--keep N                                                (N/A)                                   Number of tokens to keep from the initial prompt (default: 0, -1 = all)
+--swa-full                                              (LLAMA_ARG_SWA_FULL)                    Use full-size SWA cache (default: false)
+-fa, --flash-attn [on|off|auto]                         (LLAMA_ARG_FLASH_ATTN)                  Set Flash Attention use (default: 'auto')
+--perf, --no-perf                                       (LLAMA_ARG_PERF)                        Enable internal libllama performance timings (default: false)
+-e, --escape, --no-escape                               (N/A)                                   Process escapes sequences (\n, \r, \t, ', ", \) (default: true)
+--rope-scaling {none,linear,yarn}                       (LLAMA_ARG_ROPE_SCALING_TYPE)           RoPE frequency scaling method
+--rope-scale N                                          (LLAMA_ARG_ROPE_SCALE)                  RoPE context scaling factor, expands context by a factor of N
+--rope-freq-base N                                      (LLAMA_ARG_ROPE_FREQ_BASE)              RoPE base frequency, used by NTK-aware scaling
+--rope-freq-scale N                                     (LLAMA_ARG_ROPE_FREQ_SCALE)             RoPE frequency scaling factor, expands context by a factor of 1/N
+--yarn-orig-ctx N                                       (LLAMA_ARG_YARN_ORIG_CTX)               YaRN: original context size of model
+--yarn-ext-factor N                                     (LLAMA_ARG_YARN_EXT_FACTOR)             YaRN: extrapolation mix factor
+--yarn-attn-factor N                                    (LLAMA_ARG_YARN_ATTN_FACTOR)            YaRN: scale sqrt(t) or attention magnitude
+--yarn-beta-slow N                                      (LLAMA_ARG_YARN_BETA_SLOW)              YaRN: high correction dim or alpha
+--yarn-beta-fast N                                      (LLAMA_ARG_YARN_BETA_FAST)              YaRN: low correction dim or beta
+-kvo, --kv-offload                                      (LLAMA_ARG_KV_OFFLOAD)                  Enable KV cache offloading (default: enabled)
+--repack, --no-repack                                   (LLAMA_ARG_REPACK)                      Enable weight repacking (default: enabled)
+--no-host                                               (LLAMA_ARG_NO_HOST)                     Bypass host buffer allowing extra buffers to be used
+-ctk, --cache-type-k TYPE                               (LLAMA_ARG_CACHE_TYPE_K)                KV cache data type for K (f32, f16, bf16, q8_0, etc. Default: f16)
+-ctv, --cache-type-v TYPE                               (LLAMA_ARG_CACHE_TYPE_V)                KV cache data type for V (f32, f16, bf16, q8_0, etc. Default: f16)
+-dt, --defrag-thold N                                   (LLAMA_ARG_DEFRAG_THOLD)                KV cache defragmentation threshold (DEPRECATED)
+--mlock                                                 (LLAMA_ARG_MLOCK)                       Force system to keep model in RAM rather than swapping
+--mmap, --no-mmap                                       (LLAMA_ARG_MMAP)                        Memory-map model (default: enabled)
+-dio, --direct-io                                       (LLAMA_ARG_DIO)                         Use DirectIO if available (default: enabled)
+--numa TYPE                                             (LLAMA_ARG_NUMA)                        Attempt NUMA optimizations (distribute, isolate, numactl)
+-dev, --device <list>                                   (LLAMA_ARG_DEVICE)                      Comma-separated list of devices for offloading
+--list-devices                                          (N/A)                                   Print list of available devices and exit
+-ot, --override-tensor <pattern>=<type>                 (LLAMA_ARG_OVERRIDE_TENSOR)             Override tensor buffer type
+-cmoe, --cpu-moe                                        (LLAMA_ARG_CPU_MOE)                     Keep all MoE weights in the CPU
+-ncmoe, --n-cpu-moe N                                   (LLAMA_ARG_N_CPU_MOE)                   Keep MoE weights of the first N layers in the CPU
+-ngl, --gpu-layers N                                    (LLAMA_ARG_N_GPU_LAYERS)                Max number of layers to store in VRAM (auto, all, or exact number)
+-sm, --split-mode {none,layer,row}                      (LLAMA_ARG_SPLIT_MODE)                  How to split the model across multiple GPUs
+-ts, --tensor-split N0,N1...                            (LLAMA_ARG_TENSOR_SPLIT)                Fraction of the model to offload to each GPU
+-mg, --main-gpu INDEX                                   (LLAMA_ARG_MAIN_GPU)                    The GPU to use for the model (default: 0)
+-fit, --fit [on|off]                                    (LLAMA_ARG_FIT)                         Adjust unset arguments to fit in device memory (default: on)
+-fitt, --fit-target MiB0...                             (LLAMA_ARG_FIT_TARGET)                  Target margin per device for --fit (default: 1024)
+-fitc, --fit-ctx N                                      (LLAMA_ARG_FIT_CTX)                     Minimum ctx size that can be set by --fit (default: 4096)
+--check-tensors                                         (N/A)                                   Check model tensor data for invalid values
+--override-kv KEY=TYPE:VALUE                            (N/A)                                   Override model metadata by key (int, float, bool, str)
+--op-offload, --no-op-offload                           (N/A)                                   Offload host tensor operations to device (default: true)
+--lora FNAME                                            (N/A)                                   Path to LoRA adapter (comma-separated for multiple)
+--lora-scaled FNAME:SCALE                               (N/A)                                   Path to LoRA adapter with user defined scaling
+--control-vector FNAME                                  (N/A)                                   Add a control vector
+--control-vector-scaled FNAME:SCALE                     (N/A)                                   Add a control vector with scaling
+--control-vector-layer-range START END                  (N/A)                                   Layer range to apply the control vector(s) to
+-m, --model FNAME                                       (LLAMA_ARG_MODEL)                       Model path to load
+-mu, --model-url URL                                    (LLAMA_ARG_MODEL_URL)                   Model download url
+-dr, --docker-repo <repo>                               (LLAMA_ARG_DOCKER_REPO)                 Docker Hub model repository
+-hf, --hf-repo <user>/<model>                           (LLAMA_ARG_HF_REPO)                     Hugging Face model repository
+-hfd, --hf-repo-draft <user>/<model>                    (LLAMA_ARG_HFD_REPO)                    Hugging Face model repository for draft model
+-hff, --hf-file FILE                                    (LLAMA_ARG_HF_FILE)                     Hugging Face model file
+-hfv, --hf-repo-v <user>/<model>                        (LLAMA_ARG_HF_REPO_V)                   Hugging Face model repository for vocoder
+-hffv, --hf-file-v FILE                                 (LLAMA_ARG_HF_FILE_V)                   Hugging Face model file for vocoder
+-hft, --hf-token TOKEN                                  (HF_TOKEN)                              Hugging Face access token
+--log-disable                                           (N/A)                                   Disable logging
+--log-file FNAME                                        (LLAMA_LOG_FILE)                        Log to file
+--log-colors [on|off|auto]                              (LLAMA_LOG_COLORS)                      Set colored logging
+-v, --verbose                                           (N/A)                                   Set verbosity level to infinity
+--offline                                               (LLAMA_OFFLINE)                         Offline mode: forces use of cache
+-lv, --verbosity N                                      (LLAMA_LOG_VERBOSITY)                   Set verbosity threshold (0=generic, 4=debug)
+--log-prefix                                            (LLAMA_LOG_PREFIX)                      Enable prefix in log messages
+--log-timestamps                                        (LLAMA_LOG_TIMESTAMPS)                  Enable timestamps in log messages
+-ctkd, --cache-type-k-draft TYPE                        (LLAMA_ARG_CACHE_TYPE_K_DRAFT)          KV cache data type for K (draft model)
+-ctvd, --cache-type-v-draft TYPE                        (LLAMA_ARG_CACHE_TYPE_V_DRAFT)          KV cache data type for V (draft model)
+
+### SAMPLING PARAMS
+--samplers SAMPLERS                                     (N/A)                                   Samplers to use (default: penalties;dry;top_n_sigma;top_k;typ_p;top_p;min_p;xtc;temperature)
+-s, --seed SEED                                         (N/A)                                   RNG seed (default: -1, random)
+--sampler-seq SEQUENCE                                  (N/A)                                   Simplified sequence for samplers (default: edskypmxt)
+--ignore-eos                                            (N/A)                                   Ignore end of stream token and continue generating
+--temp N                                                (N/A)                                   Temperature (default: 0.80)
+--top-k N                                               (LLAMA_ARG_TOP_K)                       Top-k sampling (default: 40)
+--top-p N                                               (N/A)                                   Top-p sampling (default: 0.95)
+--min-p N                                               (N/A)                                   Min-p sampling (default: 0.05)
+--top-nsigma N                                          (N/A)                                   Top-n-sigma sampling (default: -1.00)
+--xtc-probability N                                     (N/A)                                   XTC probability (default: 0.00)
+--xtc-threshold N                                       (N/A)                                   XTC threshold (default: 0.10)
+--typical N                                             (N/A)                                   Locally typical sampling (default: 1.00)
+--repeat-last-n N                                       (N/A)                                   Last n tokens to consider for penalize (default: 64)
+--repeat-penalty N                                      (N/A)                                   Penalize repeat sequence of tokens (default: 1.00)
+--presence-penalty N                                    (N/A)                                   Repeat alpha presence penalty (default: 0.00)
+--frequency-penalty N                                   (N/A)                                   Repeat alpha frequency penalty (default: 0.00)
+--dry-multiplier N                                      (N/A)                                   Set DRY sampling multiplier (default: 0.00)
+--dry-base N                                            (N/A)                                   Set DRY sampling base value (default: 1.75)
+--dry-allowed-length N                                  (N/A)                                   Set allowed length for DRY sampling (default: 2)
+--dry-penalty-last-n N                                  (N/A)                                   Set DRY penalty for the last n tokens
+--dry-sequence-breaker STRING                           (N/A)                                   Add sequence breaker for DRY sampling
+--adaptive-target N                                     (N/A)                                   Adaptive-p: select tokens near this probability
+--adaptive-decay N                                      (N/A)                                   Adaptive-p: decay rate for target adaptation
+--dynatemp-range N                                      (N/A)                                   Dynamic temperature range
+--dynatemp-exp N                                        (N/A)                                   Dynamic temperature exponent
+--mirostat N                                            (N/A)                                   Use Mirostat sampling (0=disabled, 1=v1, 2=v2)
+--mirostat-lr N                                         (N/A)                                   Mirostat learning rate
+--mirostat-ent N                                        (N/A)                                   Mirostat target entropy
+-l, --logit-bias TOKEN_ID(+/-)BIAS                      (N/A)                                   Modifies the likelihood of token appearing
+--grammar GRAMMAR                                       (N/A)                                   BNF-like grammar to constrain generations
+--grammar-file FNAME                                    (N/A)                                   File to read grammar from
+-j, --json-schema SCHEMA                                (N/A)                                   JSON schema to constrain generations
+-jf, --json-schema-file FILE                            (N/A)                                   File containing a JSON schema
+-bs, --backend-sampling                                 (LLAMA_ARG_BACKEND_SAMPLING)            Enable backend sampling (experimental)
+
+### SERVER SPECIFIC PARAMS
+--ctx-checkpoints N                                     (LLAMA_ARG_CTX_CHECKPOINTS)             Max number of context checkpoints per slot (default: 8)
+-cram, --cache-ram N                                    (LLAMA_ARG_CACHE_RAM)                   Set max cache size in MiB (default: 8192)
+-kvu, --kv-unified                                      (LLAMA_ARG_KV_UNIFIED)                  Use single unified KV buffer shared across all sequences
+--context-shift                                         (LLAMA_ARG_CONTEXT_SHIFT)               Use context shift on infinite text generation
+-r, --reverse-prompt PROMPT                             (N/A)                                   Halt generation at PROMPT
+-sp, --special                                          (N/A)                                   Special tokens output enabled
+--warmup, --no-warmup                                   (N/A)                                   Perform warmup with an empty run
+--spm-infill                                            (N/A)                                   Use Suffix/Prefix/Middle pattern for infill
+--pooling TYPE                                          (LLAMA_ARG_POOLING)                     Pooling type for embeddings (none, mean, cls, last, rank)
+-np, --parallel N                                       (LLAMA_ARG_N_PARALLEL)                  Number of server slots (default: -1, auto)
+-cb, --cont-batching                                    (LLAMA_ARG_CONT_BATCHING)               Enable continuous batching (dynamic batching)
+-mm, --mmproj FILE                                      (LLAMA_ARG_MMPROJ)                      Path to a multimodal projector file
+-mmu, --mmproj-url URL                                  (LLAMA_ARG_MMPROJ_URL)                  URL to a multimodal projector file
+--mmproj-auto                                           (LLAMA_ARG_MMPROJ_AUTO)                 Use multimodal projector file if available
+--mmproj-offload                                        (LLAMA_ARG_MMPROJ_OFFLOAD)              Enable GPU offloading for multimodal projector
+--image-min-tokens N                                    (LLAMA_ARG_IMAGE_MIN_TOKENS)            Min tokens each image can take (vision models)
+--image-max-tokens N                                    (LLAMA_ARG_IMAGE_MAX_TOKENS)            Max tokens each image can take (vision models)
+-otd, --override-tensor-draft                           (N/A)                                   Override tensor buffer type for draft model
+-cmoed, --cpu-moe-draft                                 (LLAMA_ARG_CPU_MOE_DRAFT)               Keep all MoE weights in CPU for draft model
+-ncmoed, --n-cpu-moe-draft N                            (LLAMA_ARG_N_CPU_MOE_DRAFT)             Keep MoE weights of first N layers in CPU for draft
+-a, --alias STRING                                      (LLAMA_ARG_ALIAS)                       Set alias for model name (REST API)
+--host HOST                                             (LLAMA_ARG_HOST)                        IP address to listen (default: 127.0.0.1)
+--port PORT                                             (LLAMA_ARG_PORT)                        Port to listen (default: 8080)
+--path PATH                                             (LLAMA_ARG_STATIC_PATH)                 Path to serve static files from
+--api-prefix PREFIX                                     (LLAMA_ARG_API_PREFIX)                  Prefix path the server serves from
+--webui-config JSON                                     (LLAMA_ARG_WEBUI_CONFIG)                JSON for default WebUI settings
+--webui-config-file PATH                                (LLAMA_ARG_WEBUI_CONFIG_FILE)           JSON file for default WebUI settings
+--webui, --no-webui                                     (LLAMA_ARG_WEBUI)                       Enable the Web UI (default: enabled)
+--embedding, --embeddings                               (LLAMA_ARG_EMBEDDINGS)                  Restrict to only support embedding use case
+--rerank, --reranking                                   (LLAMA_ARG_RERANKING)                   Enable reranking endpoint
+--api-key KEY                                           (LLAMA_API_KEY)                         API key for authentication
+--api-key-file FNAME                                    (N/A)                                   Path to file containing API keys
+--ssl-key-file FNAME                                    (LLAMA_ARG_SSL_KEY_FILE)                Path to PEM-encoded SSL private key
+--ssl-cert-file FNAME                                   (LLAMA_ARG_SSL_CERT_FILE)               Path to PEM-encoded SSL certificate
+--chat-template-kwargs STRING                           (LLAMA_CHAT_TEMPLATE_KWARGS)            Additional params for json template parser
+-to, --timeout N                                        (LLAMA_ARG_TIMEOUT)                     Server read/write timeout in seconds (default: 600)
+--threads-http N                                        (LLAMA_ARG_THREADS_HTTP)                Number of threads used to process HTTP requests
+--cache-prompt                                          (LLAMA_ARG_CACHE_PROMPT)                Enable prompt caching
+--cache-reuse N                                         (LLAMA_ARG_CACHE_REUSE)                 Min chunk size to attempt reusing from cache
+--metrics                                               (LLAMA_ARG_ENDPOINT_METRICS)            Enable prometheus compatible metrics endpoint
+--props                                                 (LLAMA_ARG_ENDPOINT_PROPS)              Enable changing global properties via POST /props
+--slots, --no-slots                                     (LLAMA_ARG_ENDPOINT_SLOTS)              Expose slots monitoring endpoint
+--slot-save-path PATH                                   (N/A)                                   Path to save slot kv cache
+--media-path PATH                                       (N/A)                                   Directory for loading local media files
+--models-dir PATH                                       (LLAMA_ARG_MODELS_DIR)                  Directory containing models for router server
+--models-preset PATH                                    (LLAMA_ARG_MODELS_PRESET)               Path to INI file containing model presets
+--models-max N                                          (LLAMA_ARG_MODELS_MAX)                  Max number of models to load simultaneously
+--models-autoload                                       (LLAMA_ARG_MODELS_AUTOLOAD)             Automatically load models
+--jinja, --no-jinja                                     (LLAMA_ARG_JINJA)                       Use jinja template engine for chat
+--reasoning-format FORMAT                               (LLAMA_ARG_THINK)                       Controls thought tag extraction (none, deepseek, etc)
+--reasoning-budget N                                    (LLAMA_ARG_THINK_BUDGET)                Controls amount of thinking allowed
+--chat-template TEMPLATE                                (LLAMA_ARG_CHAT_TEMPLATE)               Set custom jinja chat template
+--chat-template-file FILE                               (LLAMA_ARG_CHAT_TEMPLATE_FILE)          Set custom jinja chat template file
+--prefill-assistant                                     (LLAMA_ARG_PREFILL_ASSISTANT)           Prefill assistant's response if last msg is assistant
+-sps, --slot-prompt-similarity N                        (N/A)                                   How much prompt must match slot to use it
+--lora-init-without-apply                               (N/A)                                   Load LoRA adapters without applying them
+--sleep-idle-seconds N                                  (N/A)                                   Seconds of idleness before sleep
+-td, --threads-draft N                                  (N/A)                                   Threads to use during generation (draft)
+-tbd, --threads-batch-draft N                           (N/A)                                   Threads to use during batch (draft)
+--draft, --draft-max N                                  (LLAMA_ARG_DRAFT_MAX)                   Number of tokens to draft for speculative decoding
+--draft-min N                                           (LLAMA_ARG_DRAFT_MIN)                   Min draft tokens for speculative decoding
+--draft-p-min P                                         (LLAMA_ARG_DRAFT_P_MIN)                 Min speculative decoding probability
+-cd, --ctx-size-draft N                                 (LLAMA_ARG_CTX_SIZE_DRAFT)              Size of prompt context for draft model
+-devd, --device-draft <list>                            (N/A)                                   Devices to use for offloading draft model
+-ngld, --gpu-layers-draft N                             (LLAMA_ARG_N_GPU_LAYERS_DRAFT)          Max layers to store in VRAM (draft model)
+-md, --model-draft FNAME                                (LLAMA_ARG_MODEL_DRAFT)                 Draft model for speculative decoding
+--spec-replace TARGET DRAFT                             (N/A)                                   Translate TARGET into DRAFT if models incompatible
+-mv, --model-vocoder FNAME                              (N/A)                                   Vocoder model for audio generation
+--tts-use-guide-tokens                                  (N/A)                                   Use guide tokens to improve TTS word recall
+--embd-gemma-default                                    (N/A)                                   Use default EmbeddingGemma model
+--fim-qwen-*-default                                    (N/A)                                   Use default Qwen Coder models (various sizes)
+--vision-gemma-*-default                                (N/A)                                   Use Gemma 3 QAT models (various sizes)

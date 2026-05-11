@@ -1,0 +1,50 @@
+##############################################################################################
+##############################################################################################
+###                                      TESTING FLEET                                     ###
+###                             To be Tested on Vulkan and ROCm                            ###
+##############################################################################################
+##############################################################################################
+
+https://huggingface.co/bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF
+bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF
+Q6 K 40.5gb
+llama-server -hf bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF:Q6_K
+Q6 K L 40.6gb
+llama-server -hf bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF:Q6_K
+Q8 52.2gb
+llama-server -hf bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF:Q6_K
+
+
+https://huggingface.co/unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF
+unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF
+UD Q5 K XL 79.1gb
+llama-server -hf unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF:UD-Q5_K_XL
+Q6 K 88.4gb
+llama-server -hf unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF:Q6_K
+UD Q6 K XL 94.1gb
+llama-server -hf unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF:UD-Q6_K_XL
+
+
+
+
+
+
+cd /mnt/ai_vault/testing
+hf download bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF \
+    --include "*Q6_K.gguf" \
+    --local-dir .
+hf download bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF \
+    --include "*Q6_K_L.gguf" \
+    --local-dir .
+hf download bartowski/moonshotai_Kimi-Linear-48B-A3B-Instruct-GGUF \
+    --include "*Q8_0.gguf" \
+    --local-dir .
+hf download unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF \
+    --include "*UD-Q5_K_XL*" \
+    --local-dir .
+hf download unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF \
+    --include "*Q6_K.gguf" \
+    --local-dir .
+hf download unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF \
+    --include "*UD-Q6_K_XL*" \
+    --local-dir .

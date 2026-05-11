@@ -1,0 +1,474 @@
+##############################################################################################
+##############################################################################################
+###                              ELITE FLEET - PRIMARY MODELS                              ###
+###                 Ranked by Strategic Importance for Economics Research                  ###
+###                                                                                        ###
+###  SYSTEM: AMD Ryzen AI Max+ 395 (Strix Halo) | 128GB LPDDR5 @ 8000MHz | Fedora 43     ###
+###  OPERATOR: Single user. One model active at a time. No concurrent inference.           ###
+###  ENGINES:  ROCm   → ~/llama.cpp/build/bin/llama-server                                ###
+###            Vulkan → ~/llama.cpp/build-vulkan/bin/llama-server                         ###
+###            CUDA   → ~/llama.cpp-cuda/build/bin/llama-server  (RTX 3060 Ti, TB4)       ###
+###                                                                                        ###
+###  VULKAN DEVICE NOTE: System has two Vulkan devices.                                   ###
+###    Vulkan0 = NVIDIA GeForce RTX 3060 Ti (8GB) — TB4 discrete GPU                     ###
+###    Vulkan1 = AMD Radeon 8060S / Strix Halo (128GB) — primary compute target           ###
+###    All Vulkan summoning commands use GGML_VK_VISIBLE_DEVICES=1 to force Vulkan1.      ###
+###                                                                                        ###
+###  KIMI-LINEAR NOTE: Architecture uses n_embd_head_v=72 — incompatible with q8_0       ###
+###    KV block size (32). Never add -ctk or -ctv flags to Kimi-Linear models.            ###
+###    F16 KV cache is used automatically and is correct for this architecture.           ###
+###                                                                                        ###
+###  HIP env vars set globally via /etc/profile.d/rocm-env.sh — not repeated inline.     ###
+##############################################################################################
+##############################################################################################
+
+
+
+
+##############################################################################################
+###                                  S-TIER: PRIMARY FLEET                                ###
+###         Five role-assigned models. Each covers a distinct, non-overlapping task.      ###
+###         Never run two simultaneously. Swap by pkill then launch the next.             ###
+##############################################################################################
+
+
+
+
+# S1 — GPT-OSS-120B (Heretic Q8_0)
+# ROLE: General Task Completion / Drafting / Formatting / LaTeX
+# Context: 128k | File size: 63.4gb | Platform: Vulkan1 (Strix Halo)
+#
+# Quality: 98/100
+# Speed:   Avg. 53.32 t/s (Vulkan) | Avg. 48.3 t/s (ROCm)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   The primary workhorse. Fastest large model on the system when run on Vulkan.
+#   Unmatched at generating structured Markdown, formal LaTeX, and multi-table
+#   academic outputs from scratch. Its meta-awareness of prompt structure makes
+#   it the best model for drafting, analysis, and complex formatting tasks.
+#   NOTE: Q5 result was a missing-document situation (placeholder text), not a
+#   true RAG hallucination. Do not use for analyzing provided PDFs or documents —
+#   that role belongs to Kimi-Dev (S2). Use GPT-OSS for generating original content.
+#
+# Weak spots: Not your RAG model. For document analysis, always use S2 instead.
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/bartowski/kldzj_gpt-oss-120b-heretic-Q8_0-00001-of-00002.gguf \
+    --alias "GPT-OSS-120B-Heretic" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+# S2 — Kimi-Dev-72B (Q8_K_XL)
+# ROLE: Logic / Paper Review / Teaching / RAG / Document Analysis
+# Context: 128k | File size: 61.0gb | Platform: Vulkan1 (Strix Halo)
+#
+# Quality: 99/100
+# Speed:   Avg. 47.44 t/s (Vulkan) | Avg. 42.9 t/s (ROCm)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   The most trustworthy model in the fleet for academic work. Produced the most
+#   formally rigorous hedonic pricing specification of any tested model — full
+#   LaTeX, spatial error structure, SAR-error process, identification strategy,
+#   and clustered SE rationale, all unprompted. Confirmed clean Q5 RAG pass on
+#   both platforms. Primary model for literature review, zoning ordinance analysis,
+#   thesis chapter review, and any task involving provided documents or PDFs.
+#   Use this when correctness and academic structure matter more than raw speed.
+#
+# Weak spots: None observed in May 2026 benchmark.
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/unsloth/Kimi-Dev-72B-Q8_K_XL-00001-of-00002.gguf \
+    --alias "Kimi-Dev-72B" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+# S3 — Zen4-Thinking (Q6_K)
+# ROLE: Thinking / Proof Auditing / Economic Theory / Logic Checking
+# Context: 32k | File size: 65.5gb | Platform: Vulkan1 (Strix Halo)
+#
+# Quality: 96/100
+# Speed:   Avg. 58 t/s (Vulkan) | Avg. 42 t/s (ROCm)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   Your fastest thinker by a significant margin, and the biggest Vulkan speed
+#   gain of any model in the fleet (+16 t/s over ROCm). Previously retired due
+#   to Q5 RAG failure — REINSTATED May 2026 after YaRN fix confirmed as the
+#   cause. Passes Q5 cleanly on ROCm. Exceptionally well-structured mathematical
+#   breakdowns of hedonic pricing models and spatial econometrics. Use this for
+#   step-by-step proof verification, deconstructing published models, and auditing
+#   your own quantitative logic before submission.
+#
+# Weak spots: Output formatting occasionally dense — may require minor cleanup
+#   for direct LaTeX integration. Context window limited to 32k.
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/mradermacher/zen4-thinking.Q6_K.gguf \
+    --alias "Zen4-Thinking" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+# S4 — Kimi-Linear-48B (Q6_K)
+# ROLE: Primary Coder — Cline / VS Code / Spatial Scripts / Data Pipelines
+# Context: 32k | File size: 40.5gb | Platform: ROCm (primary) | Vulkan1 (confirmed)
+#
+# Quality: 95/100 (code) | 96/100 (general) | 100/100 (RAG)
+# Speed:   Avg. 53.52 t/s (Vulkan) | Avg. 49.96 t/s (ROCm)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   PROMOTED May 2026 from A1 after benchmark confirmed it outperforms
+#   Qwen3-Coder-30B in domain-specific code quality at comparable speed.
+#   Fastest confirmed coder in the fleet. R spatial join used correct
+#   st_nearest_feature + st_distance pipeline with proper CRS handling —
+#   cleanest output of any tested model. Python hedonic regression minimal
+#   and correct. Julia used proper MOI.OPTIMAL status check. General benchmark
+#   Q1 produced formally structured hedonic model with full identification
+#   assumptions (A1-A3, E1-E4). Perfect RAG discipline on Q5.
+#   ARCHITECTURE NOTE: Never add -ctk or -ctv flags. n_embd_head_v=72 is
+#   incompatible with q8_0 KV block size. F16 KV is correct and automatic.
+#   Vulkan requires GGML_VK_VISIBLE_DEVICES=1 to target Strix Halo (Vulkan1).
+#
+# Weak spots: Context window limited to 32k. For coding tasks requiring longer
+#   context, fall back to A1 (Qwen3-Coder-30B) which supports 128k.
+
+# ROCm (primary — confirmed stable at 49.96 t/s):
+pkill llama-server; ~/llama.cpp/build/bin/llama-server \
+    -m /mnt/ai_vault/testing/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q6_K.gguf \
+    --alias "Kimi-Linear-48B" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 \
+    --repeat-penalty 1.1 --min-p 0.05
+
+# Vulkan (confirmed working at 53.52 t/s — use for speed-critical sessions):
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/testing/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q6_K.gguf \
+    --alias "Kimi-Linear-48B" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 \
+    --repeat-penalty 1.1 --min-p 0.05
+
+
+
+
+# S5 — Qwen3-VL-235B-A22B-Thinking (UD-Q3_K_XL)
+# ROLE: Heavyweight Async / Thesis Final Pass / Ultimate Logic Audit
+# Context: 32k | File size: 104gb | Platform: ROCm
+#
+# Quality: 99/100
+# Speed:   Avg. 14 t/s (ROCm and Vulkan — no meaningful platform delta)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   Previously retired due to Q5 RAG failure — FULLY REINSTATED May 2026.
+#   YaRN fix (mscale_all_dim 1→0, baked into recompiled binary) confirmed as
+#   the sole cause of prior failure. Passes Q5 cleanly on both platforms.
+#   The highest quality model in the fleet. Its HBU analysis cited USPAP,
+#   NPV sensitivity tables, and entitlement probability weighting unprompted —
+#   a level of domain expertise no other model matched. Not for interactive use.
+#   Fire this asynchronously for final thesis chapter review, policy brief audit,
+#   or any task where you can wait and absolute correctness is the only metric.
+#
+# Weak spots: Speed. 14 t/s unusable for real-time interaction. Async only.
+#   Context limited to 32k — plan document chunking accordingly.
+
+pkill llama-server; ~/llama.cpp/build/bin/llama-server \
+    -m /mnt/ai_vault/unsloth/Qwen3-VL-235B-A22B-Thinking-UD-Q3_K_XL-00001-of-00003.gguf \
+    --alias "Qwen3-235B-Thinking" \
+    -c 32768 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+##############################################################################################
+###                                  A-TIER: SPECIALIST FLEET                             ###
+###    Five specialist and reserve models. Each has a defined non-overlapping purpose.    ###
+###    Promote to S-tier only when a confirmed role vacancy opens.                        ###
+##############################################################################################
+
+
+
+
+# A1 — Qwen3-Coder-30B (UD-Q6_K_XL)
+# ROLE: Secondary Coder / Long-Context Coding / Cline Fallback
+# Context: 128k | File size: 26.3gb | Platform: Vulkan1 (Strix Halo)
+#
+# Quality: 95/100
+# Speed:   Avg. 63.93 t/s (Vulkan) | Avg. 48.2 t/s (ROCm)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   Previously S4. Displaced by Kimi-Linear-48B in May 2026 after benchmark
+#   confirmed Kimi-Linear produces cleaner domain-specific code at comparable
+#   speed. Retained at A1 as the primary coding fallback. Key advantage over
+#   S4: supports 128k context vs Kimi-Linear's 32k ceiling. Use this when a
+#   coding task requires feeding in large codebases, long dependency chains,
+#   or multi-file context that exceeds 32k. Confirmed correct R/Python/Julia
+#   output and passes Q5.
+#
+# Weak spots: May miss subtle multi-file dependency chains. Switch to A2 for
+#   complex architectural tasks requiring maximum parameter depth.
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/unsloth/Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf \
+    --alias "Qwen3-Coder-30B" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 \
+    --repeat-penalty 1.1 --min-p 0.05
+
+
+
+
+# A2 — Qwen3-Next-80B-Thinking-Uncensored (Q6_K)
+# ROLE: Uncensored Reasoning / Cross-Check / Argument Deconstruction
+# Context: 128k | File size: ~60.0gb | Platform: ROCm (faster than Vulkan here)
+#
+# Quality: 96/100
+# Speed:   Avg. 33.5 t/s (ROCm) | Avg. 30 t/s (Vulkan)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   The best model in the fleet for auditing logic without safety-filter
+#   interference. Use when you need to steelman a weak argument, deconstruct
+#   a flawed published methodology, or stress-test your own reasoning without
+#   the model softening its critique. Uniquely valuable for adversarial review
+#   of economic policy positions. Confirmed Q5 pass on both platforms.
+#   NOTE: ROCm is faster than Vulkan for this architecture — use ROCm.
+#
+# Weak spots: Output formatting less refined than GPT-OSS or Kimi-Dev.
+#   Responses are correct but occasionally require cleanup for presentation.
+
+pkill llama-server; ~/llama.cpp/build/bin/llama-server \
+    -m /mnt/ai_vault/mradermacher/Qwen3-Next-80B-Thinking-Uncensored-Q6_K.gguf \
+    --alias "Qwen3-80B-Thinking-Uncensored" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+# A3 — Qwen3-Coder-Next (UD-Q8_K_XL)
+# ROLE: Heavyweight Multi-File Coding / Complex Econometric Architecture
+# Context: 128k | File size: 73.1gb | Platform: Vulkan1 (Strix Halo)
+#
+# Quality: 94/100
+# Speed:   Avg. 38.39 t/s (Vulkan)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   The heavy variant of your coding stack. When S4 (Kimi-Linear) or A1
+#   (Coder-30B) hit a wall on multi-file dependency chains, simulation
+#   architectures, or complex package interactions, switch to this. It carries
+#   the parameter depth to reason about full project structures. Confirmed Q5
+#   pass. Slower than A1 but substantially more capable on the hardest tasks.
+#   Use exclusively for coding — prose weaker than S-tier general models.
+#
+# Weak spots: Slower than A1. Not a general reasoner.
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/unsloth/Qwen3-Coder-Next-UD-Q8_K_XL-00001-of-00003.gguf \
+    --alias "Qwen3-Coder-Next" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0 \
+    --repeat-penalty 1.15 --min-p 0.05
+
+
+
+
+# A4 — Cerebras MiniMax M2 REAP 172B A10B (IQ4_NL)
+# ROLE: RAG-Confirmed Analytical Reserve / Cross-Validation Engine
+# Context: 32k | File size: 97.6gb | Platform: ROCm
+#
+# Quality: 93/100
+# Speed:   Avg. 24.78 t/s (ROCm) | ~25 t/s (Vulkan — negligible delta)
+# Benchmark date: May 2026
+#
+# Verdict:
+#   Previously retired due to Q5 RAG failure — FULLY REINSTATED May 2026.
+#   YaRN fix confirmed as the sole cause. Passes Q5 cleanly on both platforms.
+#   Primary strategic value is architectural diversity — different training
+#   lineage from the Qwen/Kimi families. Best cross-validator for checking
+#   whether S-tier conclusions are model-family biased. At 172B parameters it
+#   provides a genuinely different analytical perspective.
+#
+# Weak spots: Output less structured than S-tier. Requires formatting cleanup.
+#   Run on ROCm — no Vulkan advantage observed.
+
+pkill llama-server; ~/llama.cpp/build/bin/llama-server \
+    -m /mnt/ai_vault/bartowski/cerebras_MiniMax-M2-REAP-172B-A10B-IQ4_NL/cerebras_MiniMax-M2-REAP-172B-A10B-IQ4_NL-00001-of-00003.gguf \
+    --alias "Cerebras-MiniMax-172B" \
+    -c 32768 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+# A5 — Qwen3.5-35B-Claude-Distilled (Q6_K)
+# ROLE: Mid-Weight Generalist / Large Context Processor / Socratic Dialogue
+# Context: 65k | File size: 28.5gb | Platform: ROCm ONLY (Vulkan OOM confirmed)
+#
+# Quality: 91/100 reasoning | 72/100 code | 100/100 RAG
+# Speed:   Avg. 59.90 t/s (prior Vulkan session — ROCm speed TBD)
+# Benchmark date: May 2026
+#
+# Benchmark scores:
+#   Prompt 1 — Spatial lag vs SEM critique:    91/100
+#   Prompt 2 — Multi-language spatial code:    72/100  ← DO NOT USE FOR CODE
+#   Prompt 3 — RAG / zoning ordinance:        100/100
+#   Overall:                                   88/100
+#
+# Verdict:
+#   Reliable for reasoning and document tasks with excellent academic tone.
+#   Perfect RAG discipline. Its 65k context window is a practical advantage
+#   for long documents that exceed Kimi-Linear's 32k ceiling when a coding
+#   response is not required.
+#   DO NOT USE FOR CODE: R used deprecated readOGR; Python used mi.E[I]
+#   (NameError); Julia invented non-existent API functions. All scripts fail
+#   at runtime. For code tasks use S4 or A1 instead.
+#   PLATFORM: Vulkan hits ErrorOutOfDeviceMemory (907MB tensor alloc failure).
+#   ROCm only.
+#
+# Weak spots: BROKEN CODE OUTPUT. ROCm required.
+
+pkill llama-server; ~/llama.cpp/build/bin/llama-server \
+    -m /mnt/ai_vault/mradermacher/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-Q6_K.gguf \
+    --alias "Qwen3.5-35B-Claude-Distilled" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
+
+
+
+
+##############################################################################################
+###                          B-TIER: GHOST TEXT / AUTOCOMPLETE                            ###
+###   All models run on RTX 3060 Ti (CUDA) via TB4. Never active during S/A-tier use.    ###
+###   Binary: ~/llama.cpp-cuda/build/bin/llama-server                                    ###
+###   Models: /mnt/ai_vault/auto-correct/                                                 ###
+###   Port:   8082 (separate from S/A-tier port 8080 — no conflict possible)             ###
+##############################################################################################
+
+
+
+
+# B1 — Qwen2.5-Coder-0.5B (Q8_0)
+# ROLE: Ultra-Low Latency Ghost Text — Real-Time FIM, Every Keystroke
+# Context: 8192 | File size: 0.63gb | Platform: CUDA (3060 Ti)
+#
+# Quality: 39/100 (best quality-per-millisecond at the micro tier)
+# Speed:   Avg TTFT: 3ms | Generation: ~391 t/s | CV%: 2.0%
+#
+# Verdict:
+#   The fastest viable ghost text model in the bench. At 3ms TTFT it is
+#   imperceptible as autocomplete latency. Runs in ~630MB VRAM, leaving 7GB
+#   free on the 3060 Ti. Recommended for continuous as-you-type inline prediction.
+#   Lower accuracy than all 7B models — struggles with multi-step spatial logic
+#   and non-Python completions (R, LaTeX, SQL). If suggestions feel frequently
+#   wrong on complex function bodies, switch to B1-ALT below.
+
+CUDA_VISIBLE_DEVICES=0 ~/llama.cpp-cuda/build/bin/llama-server \
+    -m /mnt/ai_vault/auto-correct/qwen2.5-coder-0.5b-instruct-q8_0.gguf \
+    --alias "Qwen2.5-Coder-0.5B" \
+    -c 8192 -t 8 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8082 \
+    --ubatch-size 512 --batch-size 2048 -ctk q8_0 -ctv q8_0
+
+
+# B1-ALT — Qwen2.5-Coder-1.5B (Q8_0)
+# ROLE: Balanced Ghost Text — Speed + Accuracy (Real-Time FIM)
+# Context: 8192 | File size: 1.53gb | Platform: CUDA (3060 Ti)
+#
+# Quality: 53/100 (best accuracy below 3B)
+# Speed:   Avg TTFT: 6ms | Generation: ~183 t/s | CV%: 1.0%
+#
+# Verdict:
+#   Valid alternative to B1 when accuracy matters more than raw speed. The 6ms
+#   TTFT is still imperceptible for ghost text. Trades generation throughput
+#   (183 vs 391 t/s) for a +14 point accuracy gain. Use if B1 suggestions are
+#   frequently wrong on Python function bodies and class completions.
+
+CUDA_VISIBLE_DEVICES=0 ~/llama.cpp-cuda/build/bin/llama-server \
+    -m /mnt/ai_vault/auto-correct/Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf \
+    --alias "Qwen2.5-Coder-1.5B" \
+    -c 8192 -t 8 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8082 \
+    --ubatch-size 512 --batch-size 2048
+
+
+
+
+# B2 — Granite-4.0-H-Tiny (Q5_K_M)
+# ROLE: On-Demand Complex Code & Docstring Assistant (Manual Tab-Trigger)
+# Context: 8192 | File size: 4.61gb | Platform: CUDA (3060 Ti)
+#
+# Quality: 66/100 (highest accuracy of all 19 autocomplete models benchmarked)
+# Speed:   Avg TTFT: 37ms | Generation: ~164 t/s | CV%: 0.5%
+#
+# Verdict:
+#   The accuracy champion of the autocomplete bench. Mamba-2/MoE hybrid
+#   architecture produces the highest quality completions of any model tested —
+#   particularly Python function bodies (100% keyword accuracy), decorator
+#   patterns, and error handlers. The 37ms TTFT rules out every-keystroke ghost
+#   text but is fast enough for manual tab-trigger workflows. Use for complex
+#   function generation, docstring completion, and class scaffolding where quality
+#   matters more than instant response.
+#
+# Weak spots: 37ms TTFT too slow for continuous inline prediction. LaTeX and SQL
+#   completions weaker than Python. Leaks prompt structure on non-code tasks.
+
+CUDA_VISIBLE_DEVICES=0 ~/llama.cpp-cuda/build/bin/llama-server \
+    -m /mnt/ai_vault/auto-correct/granite-4.0-h-tiny-Q5_K_M.gguf \
+    --alias "Granite-4.0-H-Tiny" \
+    -c 8192 -t 8 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8082 \
+    --ubatch-size 512 --batch-size 2048
+
+
+
+
+# B3 — Qwen2.5-Coder-7B-Instruct (Q5_K_M)
+# ROLE: High-Quality All-Language Code Assistant (Complex Multi-Language Reasoning)
+# Context: 8192 | File size: 5.07gb | Platform: CUDA (3060 Ti)
+#
+# Quality: 58/100 (best instruct-tuned 7B in the bench)
+# Speed:   Avg TTFT: 14ms | Generation: ~72 t/s | CV%: 0.4%
+#
+# Verdict:
+#   Best all-round autocomplete if you want a single model that handles Python,
+#   R, SQL, and LaTeX without switching. At 14ms TTFT it feels fast for
+#   tab-completion. Its context-variable awareness (correctly computing opportunity
+#   cost from three in-scope variables) is the standout result at the 7B tier.
+#   Use when B2 Granite's 37ms feels too slow but you need more than the 1.5B
+#   can offer.
+#
+# Weak spots: Lower generation t/s than smaller models. LaTeX equations sometimes
+#   over-generate beyond the target expression.
+
+CUDA_VISIBLE_DEVICES=0 ~/llama.cpp-cuda/build/bin/llama-server \
+    -m /mnt/ai_vault/auto-correct/Qwen2.5.1-Coder-7B-Instruct-Q5_K_M.gguf \
+    --alias "Qwen2.5-Coder-7B-Instruct" \
+    -c 8192 -t 8 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8082 \
+    --ubatch-size 512 --batch-size 2048

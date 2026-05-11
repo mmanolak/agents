@@ -1,0 +1,99 @@
+# Ollama basics
+ollama list                     # See installed models
+ollama ps                       # See running models
+ollama rm <modelname>           # Delete a model
+ollama pull <modelname>         # Redownload / update
+
+# Docker basics
+docker ps                       # Running containers
+docker ps -a                    # All containers
+docker logs openwebui          # Check OpenWebUI logs
+docker logs ollama              # Check Ollama logs
+docker stats                    # Live resource usage (watch VRAM/RAM)
+
+# System monitoring (your 128 GB unified memory is key)
+btop                            # Install if needed: sudo apt install btop
+watch -n 1 cat /proc/meminfo    # Watch memory usage
+free -h                         # Quick memory check
+
+https://<your-tailscale-hostname>.ts.net/
+
+# Remote Power Up
+## Using the remote Asus Controler in a browser is easiest, under Network Tools tab -> Wake on LAN
+## Alternatively
+ssh -p <PORT> admin@<ROUTER_IP>
+ether-wake -i br0 <MAC_ADDRESS>
+
+
+# Start a Model within tmux to keep model loaded even if connection cut
+tmux new -s ai
+tmux new -s auto
+tmux new -s download
+tmux ls
+ctrl+b # then d to leave the instance without killing it
+tmux attach -t session_name
+
+# GPU/iGPU monitoring on AMD (Strix Halo)
+sudo apt install radeontop -y
+radeontop                       # Live iGPU usage (works great on RDNA 3.5)
+
+sudo systemctl status tailscaled
+
+Look for:
+
+Loaded: ... enabled;
+Active: active (running)
+
+If it says "disabled", enable it:
+Bashsudo tailscale set --auto-update   # Optional but recommended
+sudo systemctl enable --now tailscaled
+
+
+## Searching Commands
+	# To list all the files/models found within ~/My_AI_Models/ folder 
+find My_AI_Models/ -name "*.gguf" ! -name "*-of-*" -o -name "*-00001-of-*.gguf"
+
+	# To Search for only models with Shards // First Shard of Large Models
+ls My_AI_Models/*-00001-of-*.gguf
+
+	# Removal/Deletion of a Full version ((All Shards))
+rm -rf My_AI_Models/[model name]*
+
+
+## VPN Connection
+sudo openvpn us-ca-181.ovpn
+
+
+# Cloud AI Connections
+# above for filtering, below for online search from www.openrouter.ai/[model]
+## From openrouter.ai
+openai/gpt-oss-120b:free
+qwen/qwen3-coder:free
+qwen/qwen3-vl-235b-a22b-thinking
+meta-llama/llama-3.3-70b-instruct:free
+nousresearch/hermes-3-llama-3.1-405b:free
+deepseek/deepseek-r1-0528:free
+z-ai/glm-4.5-air:free
+
+
+
+
+## From Ollama
+ollama run glm-5:cloud
+ollama run deepseek-v3.1:671b-cloud
+ollama run deepseek-v3.2:cloud
+ollama run devstral-2:123b-cloud
+ollama run glm-4.7:cloud
+ollama run glm-5:cloud
+ollama run gpt-oss:120b-cloud
+ollama run qwen3-vl:235b-instruct-cloud
+ollama run qwen3-coder-next:cloud
+
+## From AI Studio (Google)
+https://generativelanguage.googleapis.com/v1beta/openai
+
+models/gemini-2.5-pro
+models/gemini-3-pro-preview
+models/gemini-pro-latest
+models/deep-research
+models/gemini-pro

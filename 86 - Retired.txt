@@ -1,0 +1,621 @@
+##############################################################################################
+##############################################################################################
+###                                 RETIRED MODELS ARCHIVE                                 ###
+###                 Reasoning for archive: Redundancy, Speed Bottlenecks,                  ###
+###                    Load Failures, or Inferior Quality vs. Elite Fleet                  ###
+###                                                                                        ###
+###  SYSTEM: AMD Ryzen AI Max+ 395 (Strix Halo) | 128GB LPDDR5 @ 8000MHz | Fedora 43     ###
+###  Last updated: May 2026                                                                ###
+###                                                                                        ###
+###  KEY RULE: Dense models above ~20B parameters universally hit the memory bandwidth    ###
+###  wall on this hardware regardless of fine-tune quality. MoE sparse models are         ###
+###  the only viable architecture for interactive use at 70B+ parameter counts.           ###
+###                                                                                        ###
+###  VULKAN DEVICE NOTE: System has two Vulkan enumerated devices.                        ###
+###    Vulkan0 = NVIDIA GeForce RTX 3060 Ti (8GB) — TB4 discrete GPU                     ###
+###    Vulkan1 = AMD Radeon 8060S / Strix Halo (128GB) — primary compute target           ###
+###    Models that failed on Vulkan without GGML_VK_VISIBLE_DEVICES=1 were routing        ###
+###    to Vulkan0 (3060 Ti) and OOMing — not a model fault. See launch note.              ###
+##############################################################################################
+##############################################################################################
+
+
+
+
+#################### REINSTATED — PREVIOUSLY RETIRED, NOW IN ACTIVE FLEET ####################
+# The following models were retired but have been FULLY REINSTATED as of May 2026.
+# Files retained on disk. See 02_-_Selected_Models.txt for current fleet positions.
+
+# Qwen3-VL-235B-A22B-Thinking (UD-Q3_K_XL) — REINSTATED May 2026 → Now S5
+#   Previously failed Q5 RAG. Root cause: YaRN parsing bug (mscale_all_dim) in llama.cpp.
+#   Fix baked into recompiled ROCm and Vulkan binaries. Passes Q5 cleanly on both platforms.
+#   Now serves as Heavyweight Async / Thesis Final Pass (S5).
+#   Path: /mnt/ai_vault/unsloth/Qwen3-VL-235B-A22B-Thinking-UD-Q3_K_XL-00001-of-00003.gguf
+
+# Cerebras MiniMax M2 REAP 172B A10B (IQ4_NL) — REINSTATED May 2026 → Now A4
+#   Previously failed Q5 RAG. YaRN fix confirmed as sole cause.
+#   Now serves as RAG-Confirmed Analytical Reserve / Cross-Validation Engine (A4).
+#   Path: /mnt/ai_vault/bartowski/cerebras_MiniMax-M2-REAP-172B-A10B-IQ4_NL/
+
+# Zen4-Thinking (Q6_K) — REINSTATED May 2026 → Now S3
+#   Previously failed Q5 RAG. YaRN fix confirmed as sole cause.
+#   Benchmarked at 58 t/s Vulkan / 42 t/s ROCm. Passes Q5 cleanly on ROCm.
+#   Now serves as Thinking / Proof Auditing / Economic Theory (S3).
+#   Path: /mnt/ai_vault/mradermacher/zen4-thinking.Q6_K.gguf
+
+# Qwen3.5-122B-Claude Q5_K_M — REINSTATED May 2026 → Active reserve (dog3-l0ver variant)
+#   Previously failed Q5 RAG. YaRN fix confirmed as sole cause.
+#   Passes Q5 cleanly on both platforms. Used as supplementary analytical reserve.
+#   Path: /mnt/ai_vault/dog3-l0ver/Qwen3.5-122B-A10B-Claude-distill-Q5_K_M-00001-of-00002.gguf
+
+# Qwen3.5-35B-Claude-Distilled (Q6_K) — REINSTATED May 2026 → Now A5
+#   Previously failed to load. New quant from mradermacher loads on ROCm.
+#   Vulkan hits ErrorOutOfDeviceMemory (907MB tensor alloc) — ROCm only.
+#   Domain benchmark: 91/100 reasoning, 100/100 RAG, 72/100 code (do not use for code).
+#   Path: /mnt/ai_vault/mradermacher/Qwen3.5-35B-A3B-Claude-4.6-Opus-Reasoning-Distilled.i1-Q6_K.gguf
+
+# Kimi-Linear-48B-A3B (Q6_K) — PROMOTED May 2026 → Now S4
+#   New model tested May 2026. Was provisionally at A1 pending full benchmark.
+#   Benchmarked at 53.52 t/s (Vulkan) / 49.96 t/s (ROCm). Passes Q5.
+#   Produced cleanest domain-specific R/Python/Julia code of any tested model.
+#   Promoted to S4 (Primary Coder), displacing Qwen3-Coder-30B to A1.
+#   ARCHITECTURE NOTE: n_embd_head_v=72 incompatible with q8_0 KV — never use -ctk/-ctv.
+#   Requires GGML_VK_VISIBLE_DEVICES=1 on Vulkan to target Strix Halo (Vulkan1).
+#   Path: /mnt/ai_vault/testing/moonshotai_Kimi-Linear-48B-A3B-Instruct-Q6_K.gguf
+
+# Qwen3-Coder-30B (UD-Q6_K_XL) — DEMOTED May 2026 → Now A1
+#   Previously S4. Displaced by Kimi-Linear-48B after benchmark confirmed Kimi-Linear
+#   produces cleaner domain code at comparable speed. Retained at A1 as primary coding
+#   fallback. Key remaining advantage: 128k context vs Kimi-Linear's 32k ceiling.
+#   Path: /mnt/ai_vault/unsloth/Qwen3-Coder-30B-A3B-Instruct-UD-Q6_K_XL.gguf
+
+
+
+
+#################### PRONE TO CRASHING / LOAD FAILURES ####################
+# The following models failed to start the llama.cpp server process within the timeout
+# on multiple attempts, indicating fundamental incompatibility with the current setup.
+# Files deleted from disk unless noted.
+
+# Qwen3.5-40B-Claude-Deckard-Heretic [Retired May 2026]
+	## Function: Mid-Weight Reasoning Model.
+	## Quality Level: N/A (load failure — never benchmarked).
+	## Speed: N/A.
+	## Verdict: Retired due to repeated load failures on ROCm. Vulkan run completed but
+	##   produced only 2.2 t/s — confirmed dense wall. Permanently retired.
+	## Weak Spots: Dense architecture hits bandwidth wall. Load failures on ROCm.
+	## File status: DELETED
+
+# L-Base-Experimental-Thinker [Retired May 2026]
+	## Function: Large Dense Reasoning Model.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to repeated load failures. The server process timed out.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+# Kimi-Linear-35B [Retired May 2026]
+	## Function: Mid-Weight Reasoning Model.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to consistent load failures. Server process timed out.
+	##   NOTE: Do not confuse with Kimi-Linear-48B-A3B which is now S4 in the fleet.
+	##   The 35B variant is a different, older architecture that never loaded.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+# ThinkLite-VL-72B [Retired May 2026]
+	## Function: Large Dense Reasoning Model.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to repeated load failures. Server process timed out.
+	##   Files (.part1of2 and .part2of2) found in /mnt/ai_vault/mradermacher/ during
+	##   May 2026 vault cleanup and deleted.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+# Phind-CodeLlama-34B-Python & v1 [Retired May 2026]
+	## Function: Specialized Coding Models.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to repeated load failures. Server process timed out.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+# DBRX-Instruct (Q5_K_M) [Retired May 2026]
+	## Function: Large Mixture-of-Experts Model.
+	## Quality Level: N/A (load failure on ROCm — never benchmarked after retest).
+	## Speed: N/A.
+	## Verdict: Retired due to consistent load failures across all retest attempts.
+	##   Binary update (YaRN fix) made no difference. Permanently retired.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+# Phi-3-Med-Ablit [Retired May 2026]
+	## Function: Mid-Weight Generalist Model.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to consistent load failures. Server process timed out.
+	## Weak Spots: Prone to crashing. Fails to load on current system configuration.
+	## File status: DELETED
+
+
+
+
+#################### FAILED RELIABILITY TEST (RAG UNRELIABLE) ####################
+# The following models failed the document extraction task (Q5), hallucinating a generic
+# answer instead of correctly working with provided document content.
+# This makes them untrustworthy for academic work involving document analysis.
+
+# Phi-3.5-MoE-Bartowski & Phi-3.5-MoE-SS [Retired May 2026]
+	## Function: Mid-Weight Mixture-of-Experts Model.
+	## Quality Level: 90/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 27.5 t/s.
+	## Verdict: Retired for being outclassed and unreliable. Speed and quality do not
+	##   surpass S-Tier models, and it failed the critical Q5 RAG test.
+	## Weak Spots: Fails RAG reliability tests. Strategically redundant.
+	## File status: DELETED
+
+# K2-Think-V2 [Retired May 2026]
+	## Function: Dense Reasoning Model.
+	## Quality Level: 80/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 3.7 t/s.
+	## Verdict: Unusable. Crippled by memory bandwidth bottleneck (~3.7 t/s) and
+	##   failed the Q5 document extraction test. Double failure.
+	## Weak Spots: Catastrophic performance and fails RAG reliability tests.
+	## File status: DELETED
+
+# ThinkLite-72B [Retired May 2026]
+	## Function: Dense Reasoning Model.
+	## Quality Level: 88/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 2.9 t/s.
+	## Verdict: Unusable. Dense 72B bottlenecked by memory bandwidth (~2.9 t/s).
+	##   Also failed the Q5 document extraction test.
+	## Weak Spots: Catastrophic performance and fails RAG reliability tests.
+	## File status: DELETED
+
+# Yi-1.5-34B-Chat [Retired May 2026]
+	## Function: Mid-Weight Dense Generalist Model.
+	## Quality Level: 85/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 7.6 t/s.
+	## Verdict: Retired for being slow and unreliable. Dense model with poor hardware
+	##   performance. Failed Q5 RAG by hallucinating a Python script.
+	## Weak Spots: Poor performance for its size. Fails basic RAG reliability tests.
+	## File status: DELETED
+
+# Gemma-2-27B-IT [Retired May 2026]
+	## Function: Mid-Weight Model.
+	## Quality Level: 88/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 9.4 t/s.
+	## Verdict: Retired for poor performance and unreliability. Anomalously slow for
+	##   its architecture. Failed Q5 RAG by asking for the document text.
+	## Weak Spots: Anomalously slow. Fails basic RAG reliability tests.
+	## File status: DELETED
+
+# DeepSeek-67B-Chat-Q6_K [Retired May 2026]
+	## Function: Large Mixture-of-Experts Model.
+	## Quality Level: 90/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 3.9 t/s.
+	## Verdict: Retired for catastrophic performance and unreliability. MoE that
+	##   performed as poorly as a dense model. Failed Q5 RAG.
+	## Weak Spots: Catastrophic performance for an MoE. Fails RAG reliability tests.
+	## File status: DELETED
+
+# Qwen3-Opus-Distilled [Retired April 2026]
+	## Function: Distilled Reasoning Model.
+	## Quality Level: 90/100 (on coding), 0/100 (on RAG).
+	## Speed: ~30 t/s.
+	## Verdict: Retired due to critical unreliability. Failed Q5 document extraction
+	##   by hallucinating a generic answer. Untrustworthy for document analysis.
+	## Weak Spots: Fails basic RAG reliability tests.
+	## File status: DELETED
+
+# GPT-OSS-120B Standard (Q8_K_XL) [Retired May 2026]
+	## Function: High-Speed General Purpose Engine.
+	## Quality Level: 90/100 (on Q1-Q4), 0/100 (on Q5 — missing document situation).
+	## Speed: Avg. 42.7 t/s.
+	## Verdict: Retired due to redundancy. The Heretic Q8_0 variant is faster
+	##   (~53 t/s Vulkan vs ~43 t/s) and scored higher on quality.
+	##   NOTE: The Q5 failure was a missing-document placeholder situation, not true
+	##   hallucination. The Heretic variant (now S1) correctly identifies this.
+	## Weak Spots: Inferior to the Heretic fine-tune in both speed and quality.
+	## File status: DELETED
+
+
+
+
+#################### ARCHITECTURE CASUALTIES (Severe Performance Bottlenecks) ####################
+# Dense models confirmed to hit the memory bandwidth wall on this hardware.
+# Rule of thumb: any dense model above ~20B parameters is unviable for interactive use.
+# All files deleted from disk unless noted.
+
+# Llama-4-Scout-17B-16E (UD-Q5_K_XL, UD-Q6_K_XL, Q6_K) [Retired May 2026]
+	## Function: Mid-Weight Multimodal MoE Model (Meta Llama-4 family).
+	## Quality Level: ~85/100 on general prompts. Q5 RAG skipped (context ceiling).
+	## Speed: 12-15 t/s (all quants — confirmed dense wall pattern).
+	## Verdict: Retired after May 2026 benchmark. Despite being a MoE architecture
+	##   (17B active / 109B total), the AMD radv Vulkan driver cannot allocate the
+	##   ~75GB contiguous tensor block without crashing (ErrorDeviceLost, segfault).
+	##   Requires GGML_VK_VISIBLE_DEVICES=1 to avoid routing to 3060 Ti (Vulkan0).
+	##   Even when loaded correctly at -c 4096, performance is 14-15 t/s — not
+	##   competitive with fleet. Context ceiling of ~8192 before driver crashes make
+	##   it unsuitable for PDF/document processing workflows.
+	##   UD-Q6_K_XL ROCm code benchmark: 12.61 t/s avg. R script used st_intersection
+	##   for distance calculation (wrong — should be st_nearest_feature). Domain
+	##   code quality below fleet standard.
+	##   Files retained on disk pending decision to delete.
+	## Weak Spots: AMD driver contiguous allocation limit. Context ceiling. Code quality
+	##   below fleet standard. No unique role vs current fleet.
+	## File status: RETAINED (pending deletion decision)
+
+# DavidAU-Qwen3.6-40B-Deckard (Q8_0 and Q6_K) [Retired May 2026]
+	## Function: Dense 40B Code/Reasoning Fine-Tune.
+	## Quality Level: N/A — never completed a prompt.
+	## Speed: 0.0 t/s (ROCm — all prompts timed out) | 2.2 t/s (Vulkan).
+	## Verdict: Complete failure. All three prompts timed out on ROCm. Vulkan produced
+	##   2.2 t/s which is unusable. Dense 40B architecture confirmed dead on this
+	##   hardware. Permanently retired.
+	## Weak Spots: Catastrophic performance. Dense architecture incompatible.
+	## File status: DELETED
+
+# DavidAU-Qwen3.6-27B-Heretic (Q8_0 and Q6_K) [Retired May 2026]
+	## Function: Dense 27B NEO-CODE Fine-Tune.
+	## Quality Level: Code quality adequate but never fully evaluated due to speed.
+	## Speed: Avg. 7.3 t/s (Q8_0) | 9.3 t/s (Q6_K).
+	## Verdict: Confirmed dense wall. Despite being a well-regarded fine-tune, the
+	##   dense 27B architecture produces unacceptably slow generation on this hardware.
+	##   Community reputation earned on discrete GPU setups with dedicated GDDR6X VRAM.
+	## Weak Spots: Dense architecture hits bandwidth wall. 7-9 t/s unusable.
+	## File status: DELETED
+
+# Qwen2.5-Coder-32B (Q6_K_L and Q8_0) [Retired May 2026]
+	## Function: Specialized Dense Coding Model.
+	## Quality Level: 90/100 (good code quality).
+	## Speed: Avg. 6.3-6.4 t/s (both ROCm and Vulkan — no platform difference).
+	## Verdict: Confirmed dense wall. No difference between ROCm and Vulkan confirms
+	##   the bottleneck is memory bandwidth, not the compute backend.
+	## Weak Spots: Catastrophic performance. Dense architecture incompatible.
+	## File status: DELETED
+
+# Mistral Large Instruct 2411 (Q5_K_M and Q6_K) [Retired May 2026]
+	## Function: Dense, High-Quality Reasoning Model.
+	## Quality Level: 97/100 (exceptional quality on Q1-Q4).
+	## Speed: Avg. 2.5 t/s (both quants, both platforms).
+	## Verdict: Brilliant but completely unusable on this hardware. Dense 123B model.
+	##   Even excellent fine-tunes cannot overcome the memory bandwidth constraint.
+	## Weak Spots: Catastrophic performance. Dense architecture incompatible.
+	## File status: DELETED
+
+# Mistral-Medium-3.5-128B (Q5_K_M) [Retained — async only]
+	## Function: Heavyweight Academic Reviewer.
+	## Quality Level: Estimated 95/100 based on architecture and lineage.
+	## Speed: Avg. ~8 t/s (ROCm) | ~2.5 t/s (Vulkan — severe regression).
+	## Verdict: Borderline viable on ROCm only at 8 t/s. Vulkan collapses to 2.5 t/s.
+	##   Not suitable for interactive use. Retained for async fire-and-forget tasks only.
+	##   Allow 15+ minutes per response on ROCm. Not in active fleet rotation.
+	## Weak Spots: Vulkan unusable. ROCm borderline. Not for interactive sessions.
+	## File status: RETAINED at /mnt/ai_vault/unsloth/ (async use only, not in fleet)
+
+# Llama-3.1-405B-Instruct-IQ1_S [Retired May 2026]
+	## Function: Ultra-Large Parameter Model.
+	## Quality Level: 99/100 (passed RAG, but responses incomplete due to timeouts).
+	## Speed: Avg. 0.8 t/s.
+	## Verdict: Technically impressive to run at all, but completely impractical.
+	## Weak Spots: Catastrophic performance. Too slow to be usable.
+	## File status: DELETED
+
+# StarCoder2-15B-Instruct [Retired May 2026]
+	## Function: Specialized Coding Model.
+	## Quality Level: 85/100.
+	## Speed: Avg. 12.6 t/s.
+	## Verdict: Retired for inefficient performance. Non-competitive with faster MoE
+	##   alternatives. Outclassed entirely by Kimi-Linear-48B at S4.
+	## Weak Spots: Inefficient architecture for this hardware.
+	## File status: DELETED
+
+# DeepSeek-R1-Distill-Llama-70B-Q6_K [Retired April 2026]
+	## Function: Dense, High-Quality Reasoning Model.
+	## Quality Level: 94/100.
+	## Speed: Avg. 3.8 t/s.
+	## Verdict: Unusable. Dense Llama 70B architecture confirmed incompatible.
+	## Weak Spots: Catastrophic performance on this hardware.
+	## File status: DELETED
+
+# Llama-3.3-70B-Instruct-Q6_K_L [Retired April 2026]
+	## Function: Dense General Purpose Instruct Model.
+	## Quality Level: 90/100.
+	## Speed: Avg. 3.8 t/s.
+	## Verdict: Unusable. Confirms dense Llama 70B is fundamentally inefficient here.
+	##   NOTE: Llama-3.3-70B-heretic variant also evaluated May 2026 — same verdict.
+	## Weak Spots: Catastrophic performance on this hardware.
+	## File status: DELETED
+
+# Qwen2.5-Math-72B-Instruct-Q8_0 [Retired April 2026]
+	## Function: Specialized Dense Math Model.
+	## Quality Level: 92/100 (on math), 0/100 (on RAG).
+	## Speed: Avg. 2.9 t/s.
+	## Verdict: Unusable. Dense architecture performs poorly. Also failed Q5 RAG.
+	## Weak Spots: Catastrophic performance and fails RAG reliability tests.
+	## File status: DELETED
+
+# Devstral-2-123B-Instruct-2512-UD-Q5_K_XL [Retired April 2026]
+	## Function: Large-Parameter Dense Instruct Model.
+	## Quality Level: 90/100, 0/100 (on RAG).
+	## Speed: Avg. 2.3 t/s.
+	## Verdict: Unusable. Dense architecture incompatible. Failed Q5 RAG.
+	## Weak Spots: Catastrophic performance and fails RAG reliability tests.
+	## File status: DELETED
+
+# Gemma4-31B-Heretic [Retired May 2026]
+	## Function: Mid-Weight Generalist Model.
+	## Quality Level: 85/100.
+	## Speed: Avg. 7.8 t/s.
+	## Verdict: Slow and lacks quality. ~8 t/s for a 31B model is anomalously poor.
+	##   Slower than the 235B VL model. Strategically obsolete.
+	## Weak Spots: Extremely poor speed-to-size performance on this hardware.
+	## File status: DELETED
+
+# Llama-3.1-70B & Llama-3.1-70B-L [Retired May 2026]
+	## Function: Dense, High-Quality Reasoning Model.
+	## Quality Level: N/A (produced tool calls instead of text).
+	## Speed: Avg. 3.5 t/s.
+	## Verdict: Unusable. Produced JSON tool calls instead of coherent text.
+	##   Combined with catastrophic performance, a clear double failure.
+	## Weak Spots: Incorrect output format and severe performance bottleneck.
+	## File status: DELETED
+
+# CodeLlama-70B [Retired May 2026]
+	## Function: Specialized Dense Coding Model.
+	## Quality Level: N/A (produced refusals).
+	## Speed: Avg. 4.0 t/s.
+	## Verdict: Unusable. Repeatedly produced canned refusal messages. Also slow.
+	## Weak Spots: Refusal-prone and severe performance bottleneck.
+	## File status: DELETED
+
+# Mixtral-8x22B [Retired May 2026]
+	## Function: Large-Scale Mixture-of-Experts Model.
+	## Quality Level: 88/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 7.1 t/s.
+	## Verdict: Anomalously slow for an MoE on this hardware. Also failed Q5 RAG.
+	## Weak Spots: Unexpectedly slow for MoE. Fails RAG reliability tests.
+	## File status: DELETED
+
+# Command R Plus (IQ4_NL / Q6_K) [Retired March 2026]
+	## Function: Large-Scale RAG-Tuned Model.
+	## Quality Level: N/A.
+	## Speed: ~2.6-3.8 t/s.
+	## Verdict: Catastrophic performance. Unusable for any research workflow.
+	## Weak Spots: Severe performance bottleneck on this hardware.
+	## File status: DELETED
+
+# Command-R-03-2025 [Retired May 2026]
+	## Function: Large-Scale Mixture-of-Experts Model.
+	## Quality Level: 85/100 (on Q1-Q4), 0/100 (on Q5).
+	## Speed: Avg. 2.6 t/s.
+	## Verdict: MoE that performed as poorly as a dense model. Failed Q5 RAG.
+	## Weak Spots: Catastrophic performance and fails RAG reliability tests.
+	## File status: DELETED
+
+# WAIDWML-Phi4-8x14B (Q6_K & Q8_0) [Retired May 2026]
+	## Function: Large Mixture-of-Experts Model.
+	## Quality Level: 92/100 (passed RAG, good reasoning).
+	## Speed: Avg. 8-10 t/s.
+	## Verdict: Anomalously slow for an MoE. Non-competitive with S-Tier models.
+	## Weak Spots: Unexpectedly poor performance for MoE architecture on this system.
+	## File status: DELETED
+
+# HauhauCS-Qwen3.6-35B-Uncensored (Q6_K_P) [Retired May 2026]
+	## Function: Uncensored Mid-Weight MoE Model.
+	## Quality Level: Not formally benchmarked on full suite.
+	## Speed: Not formally benchmarked.
+	## Verdict: Retired during May 2026 vault cleanup. No confirmed fleet role and no
+	##   general benchmark pass on record. Role covered by superior models.
+	## Weak Spots: No validated benchmark. No fleet role.
+	## File status: DELETED
+
+# Kimi-Linear-48B-Q8_0 [Retired May 2026]
+	## Function: Maximum fidelity variant of Kimi-Linear-48B.
+	## Quality Level: 94/100 (code benchmark).
+	## Speed: Avg. 48.47 t/s (Vulkan).
+	## Verdict: Retired due to redundancy. Q6_K (now S4) runs at 53.52 t/s with
+	##   no observable quality gap. On a 3B-active-parameter MoE, Q8_0 adds 12GB
+	##   and ~5 t/s speed penalty without meaningful quality improvement.
+	##   R script produced deprecated CRS comparison (st_crs()@proj4string) vs
+	##   Q6_K's correct implementation — paradoxically worse code at higher quant.
+	## Weak Spots: Inferior speed to Q6_K with no quality benefit at this architecture.
+	## File status: RETAINED on disk (can delete to recover ~52GB)
+
+# Kimi-Linear-48B-Q6_K_L [Retired May 2026]
+	## Function: Slightly higher fidelity variant of Kimi-Linear-48B Q6_K.
+	## Quality Level: Equivalent to Q6_K (52.89 t/s Vulkan).
+	## Speed: Avg. 52.89 t/s (Vulkan) — 0.63 t/s slower than Q6_K.
+	## Verdict: Retired due to redundancy. Q6_K_L is 100MB larger than Q6_K with
+	##   no measurable output quality difference at this architecture size.
+	##   Q6_K (now S4) is strictly preferred.
+	## Weak Spots: No advantage over Q6_K in any measurable dimension.
+	## File status: RETAINED on disk as verified backup (40.6GB — low delete priority)
+
+
+
+
+#################### REDUNDANT / OUTCLASSED MODELS ####################
+
+# Qwen3-Next-80B-Thinking (Standard) (Q8_K_XL) [Retired March 2026]
+	## Function: General Purpose Reasoning Model.
+	## Quality Level: 97/100.
+	## Speed: ~26.7 t/s.
+	## Verdict: Retired due to redundancy. The Uncensored variant (now A2) is faster
+	##   on this hardware, making this standard version obsolete.
+	## Weak Spots: Slower than Uncensored counterpart without quality advantage.
+	## File status: DELETED
+
+# Qwen3-Next-80B-Instruct (Standard) (Q8_K_XL) [Retired March 2026]
+	## Function: General Purpose Instruct/Chat Model.
+	## Quality Level: 92/100.
+	## Speed: N/A.
+	## Verdict: Retired for being strategically redundant. Lacked the deep structured
+	##   reasoning of Thinking variants. No unique role.
+	## Weak Spots: Lacks depth required for high-level academic or coding work.
+	## File status: DELETED
+
+# MiniMax-M2.5-REAP-139B (Q5_K_M) [Retired March 2026]
+	## Function: Large-Parameter Reasoning Model.
+	## Quality Level: 82/100.
+	## Speed: ~21.8 t/s.
+	## Verdict: Retired for being outclassed by the Cerebras 172B model in both
+	##   quality and unique training perspective.
+	## Weak Spots: Lower quality-to-speed ratio than other large models.
+	## File status: DELETED
+
+# Huihui-GLM-4.7-Flash-abliterated (Q6_K) [Retired March 2026]
+	## Function: High-Speed Generalist Model.
+	## Quality Level: 88/100.
+	## Speed: ~45 t/s.
+	## Verdict: Retired due to redundancy. Both Kimi-Dev 72B and GPT-OSS 120B
+	##   offered superior quality at comparable or higher speeds.
+	## Weak Spots: Outclassed by S-Tier workhorses.
+	## File status: DELETED
+
+# Granite-4.1-8B & Granite-3.1-8B-Instruct [Retired May 2026]
+	## Function: Small-Weight Coding/Generalist Models.
+	## Quality Level: 88/100.
+	## Speed: Avg. ~27 t/s.
+	## Verdict: Retired for being outclassed. Good quality but poor speed for 8B
+	##   models on this hardware. Outperformed by Kimi-Linear-48B at every metric.
+	## Weak Spots: Poor speed-to-size performance.
+	## File status: DELETED
+
+# StarCoder2-7B-Instruct-Q8 [Retired May 2026]
+	## Function: Small-Weight Coding Model.
+	## Quality Level: 85/100 (formatting errors in Julia prompt).
+	## Speed: Avg. 26.4 t/s.
+	## Verdict: Retired for being outclassed and slightly unreliable. Non-competitive
+	##   with any current fleet model. Formatting issues in output.
+	## Weak Spots: Formatting errors and non-competitive speed.
+	## File status: DELETED
+
+# Nemotron-3-Super-120B (UD-Q4_K_XL) [Retained — reserve only]
+	## Function: Large-Parameter Sparse Analytical Model.
+	## Quality Level: 97/100 (high-quality, well-structured responses).
+	## Speed: Avg. 16.5 t/s (ROCm) | ~17 t/s (Vulkan).
+	## Verdict: Reinstated May 2026 after YaRN fix — passes Q5 cleanly. However at
+	##   16-17 t/s it is outclassed by all S-Tier models in speed and offers no unique
+	##   role not already covered by faster fleet members. In reserve — not in rotation.
+	##   File retained at /mnt/ai_vault/unsloth/ — do not delete.
+	## Weak Spots: Speed not competitive with current fleet.
+	## File status: RETAINED (reserve — not actively used)
+
+# Phi-3-Med-Philos [Retired May 2026]
+	## Function: Mid-Weight Philosophical/Reasoning Model.
+	## Quality Level: 88/100 (passed RAG but responses lack depth).
+	## Speed: Avg. 14.4 t/s.
+	## Verdict: Retired for being outclassed. Non-competitive against S-Tier models.
+	## Weak Spots: Mediocre speed and lacks analytical depth of larger models.
+	## File status: DELETED
+
+# Kimi-Linear-48B-Instruct (Q6_K_L) [Retired April 2026 — prior variant]
+	## Function: High-Speed Generalist Model (prior Kimi-Linear variant).
+	## Quality Level: 92/100.
+	## Speed: Avg. 44.3 t/s.
+	## Verdict: Retired due to redundancy vs Kimi-Dev 72B and GPT-OSS 120B at the time.
+	##   NOTE: Do not confuse with Kimi-Linear-48B-A3B (now S4) — different architecture.
+	##   The A3B variant uses linear attention hybrid MoE with 3B active parameters.
+	##   This retired variant is the older, standard-attention Instruct model.
+	## Weak Spots: Outclassed in quality by Kimi-Dev 72B and GPT-OSS 120B.
+	## File status: DELETED
+
+# Qwen3.5-35B-A3B-heretic-v2-Q8_0 [Retired April 2026]
+	## Function: Mid-Weight Analytical Model.
+	## Quality Level: 88/100.
+	## Speed: Avg. 36.6 t/s.
+	## Verdict: Retired due to redundancy. No unique advantage.
+	## Weak Spots: Outclassed in both quality and speed by S-Tier workhorses.
+	## File status: DELETED
+
+# Qwen3.5-27b-Q8 [Retired April 2026]
+	## Function: Small-Weight Generalist Model.
+	## Quality Level: 85/100.
+	## Speed: Avg. 7.2 t/s.
+	## Verdict: Retired due to redundancy and poor performance. Obsolete.
+	## Weak Spots: Poor speed-to-size performance on this hardware.
+	## File status: DELETED
+
+# Qwen3.5-122B-A10B (Standard & Abliterated) [Retired April 2026]
+	## Function: Large-Parameter Generalist Model.
+	## Quality Level: 90/100, 0/100 (on RAG).
+	## Speed: Avg. 17.5 t/s.
+	## Verdict: Retired for being redundant, slow, and unreliable. Significantly
+	##   slower than GPT-OSS 120B and failed the document extraction test.
+	## Weak Spots: Slow, outclassed, and fails RAG reliability tests.
+	## File status: DELETED
+
+# Qwen3.5-2B-Distill [Retired May 2026]
+	## Function: Small Utility Model.
+	## Quality Level: 80/100 (passed RAG, very basic responses).
+	## Speed: Avg. 77.7 t/s.
+	## Verdict: Retired for being strategically redundant.
+	## Weak Spots: Outclassed in quality by the Llama 3.1 8B utility model.
+	## File status: DELETED
+
+
+
+
+#################### RETIRED AUTOCOMPLETE MODELS (POST-BENCHMARK) ####################
+# All autocomplete models evaluated on RTX 3060 Ti (CUDA) via TB4.
+# Retained active fleet: B1 (Qwen2.5-Coder-0.5B), B1-ALT (Qwen2.5-Coder-1.5B),
+#                        B2 (Granite-4.0-H-Tiny), B3 (Qwen2.5-Coder-7B-Instruct)
+# All files below in /mnt/ai_vault/auto-correct/ — kept for potential re-evaluation
+# but not in active Cline/VS Code rotation.
+
+# DeepSeek-Coder-1.3B [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: 85/100 (good context awareness, poor multi-language).
+	## Speed: Avg. TTFT: 17ms.
+	## Verdict: Retired for being strategically redundant. Neither fastest nor most
+	##   accurate. Critical flaw: produced non-English text on a Python import prompt.
+	## Weak Spots: Poor on non-Python tasks. Prone to language confusion.
+	## File status: Retained in auto-correct/
+
+# LFM2.5-1.2B-Instruct [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: 86/100.
+	## Speed: Avg. TTFT: 86ms.
+	## Verdict: Retired due to high latency. 86ms TTFT is too slow for real-time
+	##   autocomplete compared to sub-20ms alternatives.
+	## Weak Spots: Uncompetitive TTFT. Poor on non-Python tasks.
+	## File status: Retained in auto-correct/
+
+# Phi-4-mini-instruct [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: N/A.
+	## Speed: N/A.
+	## Verdict: Retired due to load failure on the CUDA build.
+	## Weak Spots: Prone to crashing on current CUDA configuration.
+	## File status: Retained in auto-correct/
+
+# Qwen2.5-Coder-1.5B (prior version) [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: 80/100.
+	## Speed: Avg. TTFT: 17ms.
+	## Verdict: Retired due to unreliability. Produced empty completions on multiple
+	##   key prompts (AC1, AC4, AC8). Superseded by the Q8_0 variant now active as B1-ALT.
+	## Weak Spots: High rate of empty/null completions.
+	## File status: Retained in auto-correct/
+
+# Qwen2.5-Coder-3B-abliterated [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: 75/100 (lowest accuracy of all tested models).
+	## Speed: Avg. TTFT: 26ms.
+	## Verdict: Retired for being outclassed and unreliable. Lowest accuracy score
+	##   and also produced empty completions on multiple prompts.
+	## Weak Spots: Low accuracy and high rate of empty/null completions.
+	## File status: Retained in auto-correct/
+
+# Qwen3.5-2b-Kimi-Opus [Retired April 2026]
+	## Function: Autocomplete / FIM Coder.
+	## Quality Level: 0/100.
+	## Speed: Avg. TTFT: 492ms.
+	## Verdict: Completely unusable. Failed every single prompt with empty output.
+	##   Catastrophic latency of nearly half a second.
+	## Weak Spots: Catastrophic latency and 0% success rate on all prompts.
+	## File status: Retained in auto-correct/

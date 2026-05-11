@@ -1,0 +1,48 @@
+Objective: Create a complete, sustainable health and fitness system tailored to my life as a graduate student. The primary goal is to systematically reduce body fat and build a strong, healthy physique based on my personal history and preferences.
+
+Your Role: Act as a systems strategist. Your task is to synthesize the following principles and data points into a single, cohesive, and actionable weekly plan. The plan must be realistic, efficient, and sustainable.
+
+---
+
+### Part 1: Guiding Principles & Personal Profile
+
+*   Primary Metric is Body Fat %: I reject BMI as an inaccurate measure for my body type. The key goal is reducing my body fat percentage from an estimated ~32% into a target range of 15-20%.
+*   Goal is Based on Proven History: My target weight of 175-185 lbs is based on a time when I was strong (benching 275 lbs for reps) and healthy. The plan should be geared towards reclaiming that strong, muscular physique.
+*   Philosophy of a "Healthy Medium": The goal is a balanced and sustainable lifestyle, not a return to "over-exercising." The plan should feel energizing, not draining, and be flexible enough to prevent burnout.
+*   Efficiency and Logic are Key: I value practical, science-backed methods. This includes leveraging principles like resistant starch, creating nutrient-dense meals, and designing time-efficient workouts and cooking methods (e.g., one-pot grain blends).
+*   Support for Cognitive Health: The entire system (nutrition, exercise, sleep) should also be viewed through the lens of supporting focus and managing ADHD symptoms through non-prescription, lifestyle-based strategies.
+*   Budget and Resource Conscious: The plan must be practical and affordable, utilizing the bulk-buying opportunities and resources available to me.
+
+---
+
+### Part 2: Data, Resources, and Constraints
+
+*   Personal Metrics:
+    *   Height: 5'7", Current Weight: 210 lbs
+    *   Frame: Self-identified as having a wide frame and chest.
+
+*   Nutritional Resources & Preferences:
+    *   Stores: Costco, Sam's Club, Walmart, Target.
+    *   Equipment: Silicone freezer trays (4x250ml), glass lunch containers.
+    *   Meal Strategy: A "fridge scoop" method for grains and frozen blocks for proteins/veggies.
+    *   Dietary Focus: High protein, high fiber, nutrient-dense. Key ingredients include a quinoa/bulgur/lentil blend, overnight oats with chia/flax, Greek yogurt, and whey protein.
+
+*   Fitness Resources & Schedule:
+    *   On-Campus Gym: Open 6am-6pm with cardio, free weights, indoor track, etc.
+    *   Home Environment: Safe neighborhood for hilly walks (avg. ~8,500 steps/85 mins), yoga mat.
+    *   Academic Schedule:
+        *   Mon/Wed: 9:00-10:15 AM & 1:30-2:45 PM
+        *   Wed: 12:00-1:15 PM
+        *   Tues/Thurs: 1:30-2:45 PM
+    *   Work Commitment: A 1-hour/week TA-ship, which I will strategically place on Wednesdays.
+
+---
+
+### Part 3: Desired Output
+
+Please provide a single, cohesive plan that integrates all of the above. The output should include:
+
+1.  A detailed 4-day on-campus lunch plan based on the meal prep strategy.
+2.  A time-blocked weekly workout schedule that specifies which days are for strength, cardio, and active recovery, fitting perfectly within my academic and TA schedule.
+3.  Specific sample workouts for the gym and recommendations for home-based activity.
+4.  Actionable advice on supporting pillars (e.g., other meals, sleep, hydration) that align with the stated principles.
