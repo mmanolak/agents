@@ -48,3 +48,19 @@ hf download unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF \
 hf download unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF \
     --include "*UD-Q6_K_XL*" \
     --local-dir .
+
+
+
+
+
+
+
+https://huggingface.co/unsloth/granite-4.1-30b-GGUF
+hf download unsloth/granite-4.1-30b-GGUF --include "*UD-Q6_K_XL.gguf*" --local-dir /mnt/ai_vault/testing/
+
+pkill llama-server; GGML_VK_VISIBLE_DEVICES=1 ~/llama.cpp/build-vulkan/bin/llama-server \
+    -m /mnt/ai_vault/testing/granite-4.1-30b-UD-Q6_K_XL.gguf \
+    --alias "Granite-4.1-30b" \
+    -c 131072 -t 16 -ngl 999 --parallel 1 \
+    --flash-attn on --no-mmap --host 0.0.0.0 --port 8080 \
+    --ubatch-size 4096 --batch-size 4096 -ctk q8_0 -ctv q8_0
